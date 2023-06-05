@@ -37,17 +37,44 @@ void loop() {
   photoresistorValue1 = analogRead(PHOTORESISTOR_PIN_1);
   photoresistorValue2 = analogRead(PHOTORESISTOR_PIN_2);
   photoresistorValue3 = analogRead(PHOTORESISTOR_PIN_3);
+
+  // Write photoresistor calculated value to servo
+  servo.write(180 - getServoMovementBasedOnPhotoresistor());
   
 }
 
 /* Move the photoresistor to the bright position, indicated by the photoresistors. */
-void moveServoBasedOnPhotoresistor() {
+int getServoMovementBasedOnPhotoresistor() {
 
-  // Temporary solution. Change method later.
-  if (photoresistorValue1 > photoresistorValue2 && photoresistorValue1 > photoresistorValue3)
-    servo.write(0);
-  else if (photoresistorValue2 > photoresistorValue1 && photoresistorValue2 > photoresistorValue3)
-    servo.write(90);
-  else if (photoresistorValue3 > photoresistorValue2 && photoresistorValue3 > photoresistorValue1)
-    servo.write(180);
+  // Convert to 0-1 scale
+  double scaledVal1 = constrain(photoresistorValue1 / 100.0, 0.0, 1.0);
+  double scaledVal2 = constrain(photoresistorValue2 / 100.0, 0.0, 1.0);
+  double scaledVal3 = constrain(photoresistorValue3 / 100.0, 0.0, 1.0);
+
+  // Drop lowest value
+  
+  if (scaledVal1 < scaledVal2 && scaledVal1 < scaledVal3) {
+    // If 2 and 3 are highest, range is 90 to 160
+    return get45MovementRange(scaledVal2, scaledVal3, 90);
+
+  } else if (scaledVal2 < scaledVal1 && scaledVal2 < scaledVal3) {
+    // If 1 and 3 are highest, return 90
+    return 90;
+
+  } else if (scaledVal3 < scaledVal1 && scaledVal3 < scaledVal2) {
+    // If 1 and 2 are highest, range is 20 to 90
+    return get45MovementRange(scaledVal2, scaledVal3, 20);
+  }
+  
+}
+
+double get45MovementRange(double val1, double val2, double start) {
+  double difference = val2 - val1;
+  double range = 70;
+
+  if (difference > 0)
+    return (start + range) - (range * difference);
+  else if (difference < 0) {
+    return start + abs(range * difference);
+  } else return start + (range / 2.0);
 }
