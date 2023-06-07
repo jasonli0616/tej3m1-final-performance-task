@@ -1,9 +1,13 @@
 #include <Servo.h>
+#include <RunningAverage.h>
 
 #define SERVO_PIN 10
 #define PHOTORESISTOR_PIN_1 A0
 #define PHOTORESISTOR_PIN_2 A1
 #define PHOTORESISTOR_PIN_3 A2
+#define WIND_TURBINE_PIN A3
+
+const int WIND_TURBINE_LED_PIN1[] = {6, 5, 4, 3, 2};
 
 
 // Objects
@@ -15,6 +19,7 @@ int photoresistorValue2;
 int photoresistorValue3;
 int servoPosition = 90;
 
+RunningAverage windTurbineAverages(5);
 
 void setup() {
   // Serial monitor
@@ -25,6 +30,10 @@ void setup() {
   pinMode(PHOTORESISTOR_PIN_1, OUTPUT);
   pinMode(PHOTORESISTOR_PIN_2, OUTPUT);
   pinMode(PHOTORESISTOR_PIN_3, OUTPUT);
+  pinMode(WIND_TURBINE_PIN, INPUT);
+  for (int i = 0; i < 5; i++) {
+    pinMode(WIND_TURBINE_LED_PIN1[i], OUTPUT);
+  }
 
   // Default state
   servo.write(servoPosition);
@@ -37,6 +46,14 @@ void loop() {
   photoresistorValue1 = analogRead(PHOTORESISTOR_PIN_1);
   photoresistorValue2 = analogRead(PHOTORESISTOR_PIN_2);
   photoresistorValue3 = analogRead(PHOTORESISTOR_PIN_3);
+
+  // Get wind turbine value
+  double windTurbineIn = analogRead(WIND_TURBINE_PIN);
+  windTurbineAverages.addValue(windTurbineIn);
+  double average = windTurbineAverages.getAverage();
+  average = constrain(map(average, 0, 20, 0, 5), 0, 5);
+  Serial.println(average);
+  windTurbineOutputToLEDs(average);
 
   // Write photoresistor calculated value to servo
   servo.write(180 - getServoMovementBasedOnPhotoresistor());
@@ -77,4 +94,13 @@ double get45MovementRange(double val1, double val2, double start) {
   else if (difference < 0) {
     return start + abs(range * difference);
   } else return start + (range / 2.0);
+}
+
+void windTurbineOutputToLEDs(int amount) {
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(WIND_TURBINE_LED_PIN1[i], LOW);
+  }
+  for (int i = 0; i < amount; i++) {
+    digitalWrite(WIND_TURBINE_LED_PIN1[i], HIGH);
+  }
 }
