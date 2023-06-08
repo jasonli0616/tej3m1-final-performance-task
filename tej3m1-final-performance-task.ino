@@ -7,7 +7,7 @@
 #define PHOTORESISTOR_PIN_3 A2
 #define WIND_TURBINE_PIN A3
 
-const int WIND_TURBINE_LED_PIN1[] = {6, 5, 4, 3, 2};
+const int WIND_TURBINE_LED_PIN[] = {6, 5, 4, 3, 2};
 
 
 // Objects
@@ -33,7 +33,7 @@ void setup() {
   pinMode(PHOTORESISTOR_PIN_3, OUTPUT);
   pinMode(WIND_TURBINE_PIN, INPUT);
   for (int i = 0; i < 5; i++) {
-    pinMode(WIND_TURBINE_LED_PIN1[i], OUTPUT);
+    pinMode(WIND_TURBINE_LED_PIN[i], OUTPUT);
   }
 
   // Default state
@@ -54,9 +54,7 @@ void loop() {
   // Get wind turbine value
   int windTurbineIn = analogRead(WIND_TURBINE_PIN);
   windTurbineAverages.addValue(windTurbineIn);
-  double windTurbineAverage = windTurbineAverages.getAverage();
-  windTurbineAverage = constrain(map(windTurbineAverage, 0, 100, 0, 5), 0, 5);
-  // Serial.println(windTurbineIn);
+  double windTurbineAverage = constrain(map(windTurbineAverages.getAverage(), 0, 100, 0, 5), 0, 5);
   windTurbineOutputToLEDs(windTurbineAverage);
   
 }
@@ -110,9 +108,9 @@ double get45MovementRange(double val1, double val2, double start) {
 
 void windTurbineOutputToLEDs(int amount) {
   for (int i = 0; i < 5; i++) {
-    digitalWrite(WIND_TURBINE_LED_PIN1[i], LOW);
+    digitalWrite(WIND_TURBINE_LED_PIN[i], LOW);
   }
   for (int i = 0; i < amount; i++) {
-    digitalWrite(WIND_TURBINE_LED_PIN1[i], HIGH);
+    digitalWrite(WIND_TURBINE_LED_PIN[i], HIGH);
   }
 }
