@@ -19,6 +19,7 @@ int photoresistorValue2;
 int photoresistorValue3;
 int servoPosition = 90;
 
+RunningAverage servoAverages(10);
 RunningAverage windTurbineAverages(5);
 
 void setup() {
@@ -47,16 +48,16 @@ void loop() {
   photoresistorValue2 = analogRead(PHOTORESISTOR_PIN_2);
   photoresistorValue3 = analogRead(PHOTORESISTOR_PIN_3);
 
-  // Get wind turbine value
-  double windTurbineIn = analogRead(WIND_TURBINE_PIN);
-  windTurbineAverages.addValue(windTurbineIn);
-  double average = windTurbineAverages.getAverage();
-  average = constrain(map(average, 0, 20, 0, 5), 0, 5);
-  Serial.println(average);
-  windTurbineOutputToLEDs(average);
-
   // Write photoresistor calculated value to servo
-  servo.write(180 - getServoMovementBasedOnPhotoresistor());
+  servo.write(getServoMovementBasedOnPhotoresistor());
+
+  // Get wind turbine value
+  int windTurbineIn = analogRead(WIND_TURBINE_PIN);
+  windTurbineAverages.addValue(windTurbineIn);
+  double windTurbineAverage = windTurbineAverages.getAverage();
+  windTurbineAverage = constrain(map(windTurbineAverage, 0, 100, 0, 5), 0, 5);
+  // Serial.println(windTurbineIn);
+  windTurbineOutputToLEDs(windTurbineAverage);
   
 }
 
@@ -68,20 +69,31 @@ int getServoMovementBasedOnPhotoresistor() {
   double scaledVal2 = constrain(photoresistorValue2 / 100.0, 0.0, 1.0);
   double scaledVal3 = constrain(photoresistorValue3 / 100.0, 0.0, 1.0);
 
+  // Store movement
+  int movement = servo.read();
+
   // Drop lowest value
   
   if (scaledVal1 < scaledVal2 && scaledVal1 < scaledVal3) {
     // If 2 and 3 are highest, range is 90 to 160
-    return get45MovementRange(scaledVal2, scaledVal3, 90);
+    movement = get45MovementRange(scaledVal2, scaledVal3, 90);
 
   } else if (scaledVal2 < scaledVal1 && scaledVal2 < scaledVal3) {
     // If 1 and 3 are highest, return 90
-    return 90;
+    movement = 90;
 
   } else if (scaledVal3 < scaledVal1 && scaledVal3 < scaledVal2) {
     // If 1 and 2 are highest, range is 20 to 90
-    return get45MovementRange(scaledVal2, scaledVal3, 20);
+    movement = get45MovementRange(scaledVal2, scaledVal3, 20);
   }
+
+  movement = 180 - movement;
+  servoAverages.addValue(movement);
+  
+  float newPosition = servoAverages.getAverage();
+  if (abs(newPosition - servo.read()) > 25)
+    return servoAverages.getAverage();
+  else return servo.read();
   
 }
 
