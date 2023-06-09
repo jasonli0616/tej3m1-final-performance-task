@@ -48,18 +48,26 @@ void loop() {
   photoresistorValue2 = analogRead(PHOTORESISTOR_PIN_2);
   photoresistorValue3 = analogRead(PHOTORESISTOR_PIN_3);
 
-  // Write photoresistor calculated value to servo
-  servo.write(getServoMovementBasedOnPhotoresistor());
-
   // Get wind turbine value
   int windTurbineIn = analogRead(WIND_TURBINE_PIN);
   windTurbineAverages.addValue(windTurbineIn);
+
+  // Get temperature sensors
+  Serial.println(dht11.readTemperature());
+
+  // Write photoresistor calculated value to servo
+  servo.write(getServoMovementBasedOnPhotoresistor());
+
+  // Write wind turbine values to LEDs
   double windTurbineAverage = constrain(map(windTurbineAverages.getAverage(), 0, 100, 0, 5), 0, 5);
   windTurbineOutputToLEDs(windTurbineAverage);
   
 }
 
-/* Move the photoresistor to the bright position, indicated by the photoresistors. */
+/**
+ * Move the photoresistor to the bright position, indicated by the photoresistors.
+ * @return target servo movement
+ */
 int getServoMovementBasedOnPhotoresistor() {
 
   // Convert to 0-1 scale
@@ -95,6 +103,14 @@ int getServoMovementBasedOnPhotoresistor() {
   
 }
 
+/**
+ * Get the 0-45 deg range of the servo movement, starting from the start number.
+ *
+ * @param val1 value 1
+ * @param val2 value 2
+ * @param start start number
+ * @return range from start to start+45
+ */
 double get45MovementRange(double val1, double val2, double start) {
   double difference = val2 - val1;
   double range = 70;
@@ -106,6 +122,10 @@ double get45MovementRange(double val1, double val2, double start) {
   } else return start + (range / 2.0);
 }
 
+/**
+ * Output the wind turbine to the LEDs.
+ * @param amount wind turbine amount
+ */
 void windTurbineOutputToLEDs(int amount) {
   for (int i = 0; i < 5; i++) {
     digitalWrite(WIND_TURBINE_LED_PIN[i], LOW);
