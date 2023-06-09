@@ -1,26 +1,32 @@
 #include <Servo.h>
 #include <RunningAverage.h>
+#include <DHT.h>
 
-#define SERVO_PIN 10
+#define SERVO_PIN 13
 #define PHOTORESISTOR_PIN_1 A0
 #define PHOTORESISTOR_PIN_2 A1
 #define PHOTORESISTOR_PIN_3 A2
+
 #define WIND_TURBINE_PIN A3
+
+#define DHTPIN 10
+#define DHTTYPE DHT11
 
 const int WIND_TURBINE_LED_PIN[] = {6, 5, 4, 3, 2};
 
 
 // Objects
 Servo servo;
+DHT dht11(DHTPIN, DHTTYPE);
 
-// State
-int photoresistorValue1;
-int photoresistorValue2;
-int photoresistorValue3;
-int servoPosition = 90;
-
+// Averages
 RunningAverage servoAverages(10);
 RunningAverage windTurbineAverages(5);
+
+// Store state
+// temperature and humidity is stored because the sensor occasionally gives NaN
+double temperature;
+double humidity;
 
 void setup() {
   // Serial monitor
@@ -35,45 +41,53 @@ void setup() {
   for (int i = 0; i < 5; i++) {
     pinMode(WIND_TURBINE_LED_PIN[i], OUTPUT);
   }
+  dht11.begin();
 
   // Default state
-  servo.write(servoPosition);
+  servo.write(90);
 }
 
 
 void loop() {
 
   // Get photoresistor values
-  photoresistorValue1 = analogRead(PHOTORESISTOR_PIN_1);
-  photoresistorValue2 = analogRead(PHOTORESISTOR_PIN_2);
-  photoresistorValue3 = analogRead(PHOTORESISTOR_PIN_3);
+  int photoresistorValue1 = analogRead(PHOTORESISTOR_PIN_1);
+  int photoresistorValue2 = analogRead(PHOTORESISTOR_PIN_2);
+  int photoresistorValue3 = analogRead(PHOTORESISTOR_PIN_3);
 
   // Get wind turbine value
   int windTurbineIn = analogRead(WIND_TURBINE_PIN);
   windTurbineAverages.addValue(windTurbineIn);
 
-  // Get temperature sensors
-  Serial.println(dht11.readTemperature());
+  // Get temperature and humidity
+  readDHT11Values();
 
   // Write photoresistor calculated value to servo
-  servo.write(getServoMovementBasedOnPhotoresistor());
+  servo.write(getServoMovementBasedOnPhotoresistor(photoresistorValue1, photoresistorValue2, photoresistorValue3));
 
   // Write wind turbine values to LEDs
   double windTurbineAverage = constrain(map(windTurbineAverages.getAverage(), 0, 100, 0, 5), 0, 5);
   windTurbineOutputToLEDs(windTurbineAverage);
+
+  // Write DHT11 values
+  outputDHT11Values();
   
 }
 
 /**
  * Move the photoresistor to the bright position, indicated by the photoresistors.
+ *
+ * @param val1 left photoresistor
+ * @param val2 centre photoresistor
+ * @param val3 right photoresistor
  * @return target servo movement
  */
-int getServoMovementBasedOnPhotoresistor() {
+int getServoMovementBasedOnPhotoresistor(int val1, int val2, int val3) {
 
   // Convert to 0-1 scale
-  double scaledVal1 = constrain(photoresistorValue1 / 100.0, 0.0, 1.0);
-  double scaledVal2 = constrain(photoresistorValue2 / 100.0, 0.0, 1.0);
-  double scaledVal3 = constrain(photoresistorValue3 / 100.0, 0.0, 1.0);
+  double scaledVal1 = constrain(val1 / 100.0, 0.0, 1.0);
+  double scaledVal2 = constrain(val2 / 100.0, 0.0, 1.0);
+  double scaledVal3 = constrain(val3 / 100.0, 0.0, 1.0);
 
   // Store movement
   int movement = servo.read();
@@ -133,4 +147,31 @@ void windTurbineOutputToLEDs(int amount) {
   for (int i = 0; i < amount; i++) {
     digitalWrite(WIND_TURBINE_LED_PIN[i], HIGH);
   }
+}
+
+/**
+ * Read the DHT11 values, check if is NaN, and set state.
+ */
+void readDHT11Values() {
+  double newTemperature = dht11.readTemperature();
+  double newHumidity = dht11.readHumidity();
+
+  if (!isnan(newTemperature)) temperature = newTemperature;
+  if (!isnan(newHumidity)) humidity = newHumidity;
+}
+
+/**
+  * Output the DHT11 values through the serial monitor.
+  */
+void outputDHT11Values() {
+
+  // Print temperature
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  
+  // Print humidity
+  Serial.print(" Humidity: ");
+  Serial.print(humidity);
+  
+  Serial.print("\n");
 }
