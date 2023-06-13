@@ -12,6 +12,8 @@
 #define DHTPIN 10
 #define DHTTYPE DHT11
 
+#define MOISTURE_SENSOR_PIN 12
+
 const int WIND_TURBINE_LED_PIN[] = {6, 5, 4, 3, 2};
 
 
@@ -33,18 +35,22 @@ void setup() {
   Serial.begin(9600);
   
   // Set pins
-  servo.attach(10);
+  servo.attach(SERVO_PIN);
   pinMode(PHOTORESISTOR_PIN_1, OUTPUT);
   pinMode(PHOTORESISTOR_PIN_2, OUTPUT);
   pinMode(PHOTORESISTOR_PIN_3, OUTPUT);
+
   pinMode(WIND_TURBINE_PIN, INPUT);
   for (int i = 0; i < 5; i++) {
     pinMode(WIND_TURBINE_LED_PIN[i], OUTPUT);
   }
+
   dht11.begin();
 
+  pinMode(MOISTURE_SENSOR_PIN, INPUT);
+
   // Default state
-  servo.write(90);
+  servo.write(0);
 }
 
 
@@ -70,7 +76,8 @@ void loop() {
   windTurbineOutputToLEDs(windTurbineAverage);
 
   // Write DHT11 values
-  outputDHT11Values();
+  // outputDHT11Values();
+  Serial.println(digitalRead(MOISTURE_SENSOR_PIN));
   
 }
 
