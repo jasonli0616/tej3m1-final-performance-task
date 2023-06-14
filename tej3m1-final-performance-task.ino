@@ -12,7 +12,8 @@
 #define DHTPIN 10
 #define DHTTYPE DHT11
 
-#define MOISTURE_SENSOR_PIN 12
+#define MOISTURE_SENSOR_PIN 7
+#define MOISTURE_OUTPUT_PIN 11
 
 const int WIND_TURBINE_LED_PIN[] = {6, 5, 4, 3, 2};
 
@@ -34,23 +35,25 @@ void setup() {
   // Serial monitor
   Serial.begin(9600);
   
-  // Set pins
+  // Stage 1
   servo.attach(SERVO_PIN);
   pinMode(PHOTORESISTOR_PIN_1, OUTPUT);
   pinMode(PHOTORESISTOR_PIN_2, OUTPUT);
   pinMode(PHOTORESISTOR_PIN_3, OUTPUT);
+  servo.write(0);
 
+  // Stage 2
   pinMode(WIND_TURBINE_PIN, INPUT);
   for (int i = 0; i < 5; i++) {
     pinMode(WIND_TURBINE_LED_PIN[i], OUTPUT);
   }
 
+  // Stage 3
   dht11.begin();
 
+  // Stage 4
   pinMode(MOISTURE_SENSOR_PIN, INPUT);
-
-  // Default state
-  servo.write(0);
+  pinMode(MOISTURE_OUTPUT_PIN, OUTPUT);
 }
 
 
@@ -68,6 +71,11 @@ void loop() {
   // Get temperature and humidity
   readDHT11Values();
 
+  // Get moisture sensor value
+  int moistureSensorValue = digitalRead(MOISTURE_SENSOR_PIN);
+
+  // -----
+
   // Write photoresistor calculated value to servo
   servo.write(getServoMovementBasedOnPhotoresistor(photoresistorValue1, photoresistorValue2, photoresistorValue3));
 
@@ -76,8 +84,10 @@ void loop() {
   windTurbineOutputToLEDs(windTurbineAverage);
 
   // Write DHT11 values
-  // outputDHT11Values();
-  Serial.println(digitalRead(MOISTURE_SENSOR_PIN));
+  outputDHT11Values();
+
+  // Write moisture sensor value
+  digitalWrite(MOISTURE_OUTPUT_PIN, moistureSensorValue);
   
 }
 
