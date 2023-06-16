@@ -7,12 +7,12 @@
 #define PHOTORESISTOR_PIN_2 A1
 #define PHOTORESISTOR_PIN_3 A2
 
-#define WIND_TURBINE_PIN A3
+#define WIND_TURBINE_PIN A4
 
 #define DHTPIN 10
 #define DHTTYPE DHT11
 
-#define MOISTURE_SENSOR_PIN 7
+#define MOISTURE_SENSOR_PIN A3
 #define MOISTURE_OUTPUT_PIN 11
 
 const int WIND_TURBINE_LED_PIN[] = {6, 5, 4, 3, 2};
@@ -72,7 +72,7 @@ void loop() {
   readDHT11Values();
 
   // Get moisture sensor value
-  int moistureSensorValue = digitalRead(MOISTURE_SENSOR_PIN);
+  int moistureSensorValue = (analogRead(MOISTURE_SENSOR_PIN) >= 50) ? HIGH : LOW;
 
   // -----
 
